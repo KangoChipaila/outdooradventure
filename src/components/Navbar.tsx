@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { useWishlist } from "../context/WishlistContext";
 
 const navLinks = ["Activities", "Women", "Men", "Children", "Shoes", "Clothing"];
 
@@ -7,6 +9,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { openCart, itemCount } = useCart();
+  const { openWishlist, itemCount: wishlistCount } = useWishlist();
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -37,16 +40,21 @@ export default function Navbar() {
       {/* Icon group */}
       <div className="flex items-center gap-5">
         {/* User */}
-        <button aria-label="Account" className="text-gray-800 hover:text-green-700 transition-colors">
+        <Link to="/profile" aria-label="Account" className="text-gray-800 hover:text-green-700 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-6 h-6">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
           </svg>
-        </button>
-        {/* Bookmark */}
-        <button aria-label="Saved items" className="text-gray-800 hover:text-green-700 transition-colors">
+        </Link>
+        {/* Bookmark / Wishlist */}
+        <button aria-label="Saved items" onClick={openWishlist} className="relative text-gray-800 hover:text-green-700 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-6 h-6">
             <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
           </svg>
+          {wishlistCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 bg-green-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+              {wishlistCount > 99 ? "99+" : wishlistCount}
+            </span>
+          )}
         </button>
         {/* Cart */}
         <button aria-label="Shopping cart" onClick={openCart} className="relative text-gray-800 hover:text-green-700 transition-colors">
@@ -104,36 +112,36 @@ export default function Navbar() {
               <ul className="flex flex-col gap-2 mb-4">
                 {navLinks.map((label) => (
                   <li key={label}>
-                    <a
-                      href="#"
+                    <Link
+                      to={`/category/${label.toLowerCase()}`}
                       role="menuitem"
                       className="block w-full text-center text-xs font-medium text-gray-900 border border-green-500 rounded-full py-1.5 px-3 hover:bg-green-50 transition-colors"
                       onClick={() => setMenuOpen(false)}
                     >
                       {label}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
 
               {/* Bottom action buttons — black filled */}
               <div className="flex flex-col gap-2">
-                <a
-                  href="#"
+                <Link
+                  to="/help"
                   role="menuitem"
                   className="block w-full text-center text-xs font-bold text-white bg-gray-900 rounded-full py-2 px-3 hover:bg-gray-700 transition-colors"
                   onClick={() => setMenuOpen(false)}
                 >
                   Help and feedback
-                </a>
-                <a
-                  href="#"
+                </Link>
+                <Link
+                  to="/faqs"
                   role="menuitem"
                   className="block w-full text-center text-xs font-bold text-white bg-gray-900 rounded-full py-2 px-3 hover:bg-gray-700 transition-colors"
                   onClick={() => setMenuOpen(false)}
                 >
                   FAQs
-                </a>
+                </Link>
               </div>
             </div>
           )}

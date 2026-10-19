@@ -4,13 +4,11 @@ import heroImg from "../assets/HeroImg.png";
 export default function Hero() {
   return (
     <section
-      className="relative w-full h-[60vh] min-h-[320px] flex items-center justify-center bg-cover bg-center"
+      className="relative w-full h-[70vh] min-h-[320px] flex items-center justify-center bg-cover bg-center before:absolute before:inset-0 before:bg-black/60"
       style={{ backgroundImage: `url(${heroImg})` }}
       aria-label="Hero banner"
     >
-      {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-black/30" aria-hidden="true" />
-      <h1 className="relative z-10 text-white text-sm md:text-6xl font-bold tracking-[0.25em] uppercase text-center drop-shadow-lg">
+      <h1 className="relative z-10 text-white text-5xl font-bold uppercase text-center drop-shadow-lg">
         DARE TO VENTURE
       </h1>
     </section>
