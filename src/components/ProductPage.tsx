@@ -1,15 +1,10 @@
 import { useState } from "react";
-import type { Product } from "../data/products";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { PRODUCTS } from "../data/products";
 import { formatZMW } from "../utils/currency";
 import { useCart } from "../context/CartContext";
 import Footer from "./Footer";
 
-interface Props {
-  product: Product;
-  onBack: () => void;
-  onProductClick: (product: Product) => void;
-}
 
 function StarRating({ rating }: { rating: number }) {
   return (
@@ -42,14 +37,27 @@ function ImgPlaceholder() {
   );
 }
 
-export default function ProductPage({ product, onBack, onProductClick }: Props) {
+export default function ProductPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const product = PRODUCTS.find((p) => p.id === Number(id));
+
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const [selectedColor, setSelectedColor] = useState<string>(product.colors[0]);
+  const [selectedColor, setSelectedColor] = useState<string>(product?.colors[0] ?? "");
   const [qty, setQty] = useState(1);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
   const [addedFeedback, setAddedFeedback] = useState(false);
   const { addItem, openCart } = useCart();
+
+  if (!product) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <p className="text-gray-500 text-lg">Product not found.</p>
+        <Link to="/" className="text-green-700 underline text-sm">Back to home</Link>
+      </div>
+    );
+  }
 
   // Similar items — same category, exclude current product, up to 3
   const similar = PRODUCTS.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 3);
@@ -59,12 +67,12 @@ export default function ProductPage({ product, onBack, onProductClick }: Props) 
   function handleAddToCart() {
     for (let i = 0; i < qty; i++) {
       addItem({
-        id: product.id,
-        name: product.name,
-        price: product.price,
+        id: product!.id,
+        name: product!.name,
+        price: product!.price,
         size: selectedSize ?? undefined,
         color: selectedColor,
-        img: product.img || undefined,
+        img: product!.img || undefined,
       });
     }
     setAddedFeedback(true);
@@ -76,7 +84,7 @@ export default function ProductPage({ product, onBack, onProductClick }: Props) 
       {/* ── Back breadcrumb ── */}
       <div className="px-4 md:px-8 pt-4 pb-2">
         <button
-          onClick={onBack}
+          onClick={() => navigate(-1)}
           className="flex items-center gap-1 text-xs text-gray-500 hover:text-green-700 transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
@@ -287,9 +295,9 @@ export default function ProductPage({ product, onBack, onProductClick }: Props) 
         <div className="grid grid-cols-3 gap-4">
           {similar.length > 0
             ? similar.map((p) => (
-                <button
+                <Link
                   key={p.id}
-                  onClick={() => onProductClick(p)}
+                  to={`/product/${p.id}`}
                   className="aspect-square rounded-xl overflow-hidden bg-gray-200 shadow-sm hover:shadow-md transition-shadow focus:outline-none focus:ring-2 focus:ring-green-500"
                   aria-label={p.name}
                 >
@@ -298,7 +306,7 @@ export default function ProductPage({ product, onBack, onProductClick }: Props) 
                   ) : (
                     <ImgPlaceholder />
                   )}
-                </button>
+                </Link>
               ))
             : [1, 2, 3].map((i) => (
                 <div key={i} className="aspect-square rounded-xl bg-gray-200 flex items-center justify-center shadow-sm">

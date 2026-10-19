@@ -1,4 +1,4 @@
-import heroImg from "../assets/hero.png";
+import heroImg from "../assets/HeroImg.png";
 
 // Hero: full-width mountain photo with centered "DARE TO VENTURE" headline
 export default function Hero() {
@@ -10,8 +10,8 @@ export default function Hero() {
     >
       {/* Dark overlay for readability */}
       <div className="absolute inset-0 bg-black/30" aria-hidden="true" />
-      <h1 className="relative z-10 text-white text-4xl md:text-6xl font-bold tracking-[0.25em] uppercase text-center drop-shadow-lg">
-        Dare to Venture
+      <h1 className="relative z-10 text-white text-sm md:text-6xl font-bold tracking-[0.25em] uppercase text-center drop-shadow-lg">
+        DARE TO VENTURE
       </h1>
     </section>
   );

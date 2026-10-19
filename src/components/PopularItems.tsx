@@ -1,9 +1,5 @@
+import { Link } from "react-router-dom";
 import { PRODUCTS } from "../data/products";
-import type { Product } from "../data/products";
-
-interface Props {
-  onProductClick: (product: Product) => void;
-}
 
 function ImgPlaceholder() {
   return (
@@ -23,15 +19,15 @@ function ImgPlaceholder() {
   );
 }
 
-export default function PopularItems({ onProductClick }: Props) {
+export default function PopularItems() {
   return (
     <section className="w-full bg-gray-100 py-8 px-4 md:px-8" aria-label="Popular items">
       <h2 className="text-sm font-bold text-gray-800 mb-4">Popular Items</h2>
       <div className="grid grid-cols-5 gap-4">
         {PRODUCTS.map((product) => (
-          <button
+          <Link
             key={product.id}
-            onClick={() => onProductClick(product)}
+            to={`/product/${product.id}`}
             className="block bg-white rounded-md overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 aspect-square focus:outline-none focus:ring-2 focus:ring-green-500"
             aria-label={product.name}
           >
@@ -45,7 +41,7 @@ export default function PopularItems({ onProductClick }: Props) {
             ) : (
               <ImgPlaceholder />
             )}
-          </button>
+          </Link>
         ))}
       </div>
     </section>
