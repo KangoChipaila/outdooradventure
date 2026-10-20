@@ -12,6 +12,7 @@ import Wishlist from "./components/Wishlist";
 import ProductPage from "./components/ProductPage";
 import FirstTimers from "./components/FirstTimers";
 import LogIn from "./components/LogIn";
+import SignUp from "./components/SignUp";
 import UserProfile from "./components/UserProfile";
 import CategoryPage from "./components/CategoryPage";
 import FAQs from "./components/FAQs";
@@ -39,13 +40,14 @@ function App() {
     <CartProvider>
       <WishlistProvider>
         {/* Navbar is always visible */}
-        { location.pathname != "/login" && <Navbar /> }
+        { location.pathname !== "/login" && location.pathname !== "/signup" && <Navbar /> }
 
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/product/:id" element={<div className="pt-[56px]"><ProductPage /></div>} />
           <Route path="/firsttimers" element={<FirstTimers />} />
           <Route path="/login" element={<LogIn />}/>
+          <Route path="/signup" element={<SignUp />}/>
           <Route path="/profile" element={<UserProfile />}/>
           <Route path="/category/:slug" element={<CategoryPage />}/>
           <Route path="/faqs" element={<FAQs />}/>

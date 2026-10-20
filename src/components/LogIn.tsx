@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import loginBackground from "../assets/colin-moldenhauer-RMhgATUx0Cc-unsplash.jpg";
 
 function LogIn(){
@@ -32,7 +33,7 @@ function LogIn(){
                         <input id="password" name="password" type="password" maxLength={10} placeholder="**********" className="h-full border-b border-green-300 hover:border-green-400 w-full" />
                     </div>
                     <button id="submit" name="submit" type="submit" className="border border-white rounded rounded-lg text-black font-semibold bg-white h-1/12 w-3/7 mx-auto transition duration:700 ease-in-out hover:-translate-y-0.5">Log In</button>
-                    <p>Don't have an account? Register <a href="#" className="font-bold">here</a></p>
+                    <p>Don't have an account? <Link to="/signup" className="font-bold hover:underline">Register here</Link></p>
                 </form>
             </div>
         </div>
