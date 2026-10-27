@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import loginBackground from "../assets/colin-moldenhauer-RMhgATUx0Cc-unsplash.jpg";
+import { apiFetch } from "../utils/api";
+import { useAuth } from "../context/AuthContext";
+import type { AuthUser } from "../context/AuthContext";
 
 interface SignUpForm {
   firstName: string;
@@ -64,8 +67,14 @@ function InputField({
   );
 }
 
+interface SignupResponse {
+  token: string;
+  user: AuthUser;
+}
+
 function SignUp() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [form, setForm] = useState<SignUpForm>({
     firstName: "",
@@ -118,30 +127,23 @@ function SignUp() {
     setErrors({});
 
     try {
-      const response = await fetch("http://localhost:4000/api/auth/signup", {
+      const data = await apiFetch<SignupResponse>("/api/auth/signup", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           firstName: form.firstName.trim(),
           lastName: form.lastName.trim(),
           email: form.email.trim(),
           phone: form.phone.trim() || undefined,
           password: form.password,
-        }),
+        },
       });
 
-      const data = await response.json() as { error?: string };
-
-      if (!response.ok) {
-        setErrors({ general: data.error ?? "Something went wrong. Please try again." });
-        return;
-      }
-
+      // Store auth state and navigate home
+      login(data.token, data.user);
       setSuccess(true);
-      // Brief pause so the user sees the success state, then navigate to login
-      setTimeout(() => navigate("/login"), 1500);
-    } catch {
-      setErrors({ general: "Unable to reach the server. Please try again later." });
+      setTimeout(() => navigate("/"), 800);
+    } catch (err) {
+      setErrors({ general: err instanceof Error ? err.message : "Something went wrong. Please try again." });
     } finally {
       setLoading(false);
     }

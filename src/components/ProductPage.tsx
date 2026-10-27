@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { PRODUCTS } from "../data/products";
+import type { Product } from "../data/products";
 import { formatZMW } from "../utils/currency";
 import { useCart } from "../context/CartContext";
+import { useWishlist } from "../context/WishlistContext";
+import { useAuth } from "../context/AuthContext";
+import { apiFetch } from "../utils/api";
 import Footer from "./Footer";
 
 
@@ -40,15 +44,46 @@ function ImgPlaceholder() {
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const product = PRODUCTS.find((p) => p.id === Number(id));
+  const { addItem, openCart } = useCart();
+  const { addItem: addToWishlist, isWishlisted, removeItem: removeWishlistItem, items: wishlistItems } = useWishlist();
+  const { isAuthenticated } = useAuth();
+
+  const [product, setProduct] = useState<Product | null>(
+    PRODUCTS.find((p) => p.id === Number(id)) ?? null
+  );
+  const [allProducts, setAllProducts] = useState<Product[]>(PRODUCTS);
+  const [loading, setLoading] = useState(!product);
 
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const [selectedColor, setSelectedColor] = useState<string>(product?.colors[0] ?? "");
+  const [selectedColor, setSelectedColor] = useState<string>("");
   const [qty, setQty] = useState(1);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
   const [addedFeedback, setAddedFeedback] = useState(false);
-  const { addItem, openCart } = useCart();
+
+  // Fetch the product from the API
+  useEffect(() => {
+    const numId = Number(id);
+    if (isNaN(numId)) return;
+
+    apiFetch<Product>(`/api/products/${numId}`)
+      .then((p) => {
+        setProduct(p);
+        setSelectedColor(p.colors[0] ?? "");
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+
+    apiFetch<Product[]>("/api/products").then(setAllProducts).catch(() => {});
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" aria-label="Loading" />
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -60,9 +95,10 @@ export default function ProductPage() {
   }
 
   // Similar items — same category, exclude current product, up to 3
-  const similar = PRODUCTS.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 3);
-
+  const similar = allProducts.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 3);
   const galleryImgs = product.gallery.length > 0 ? product.gallery : [product.img];
+
+  const wishlisted = isWishlisted(product.id);
 
   function handleAddToCart() {
     for (let i = 0; i < qty; i++) {
@@ -77,6 +113,24 @@ export default function ProductPage() {
     }
     setAddedFeedback(true);
     setTimeout(() => setAddedFeedback(false), 1800);
+  }
+
+  async function handleToggleWishlist() {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+    if (wishlisted) {
+      const existingItem = wishlistItems.find((i) => i.productId === product!.id);
+      if (existingItem) await removeWishlistItem(existingItem.id);
+    } else {
+      await addToWishlist({
+        productId: product!.id,
+        name: product!.name,
+        price: product!.price,
+        img: product!.img || undefined,
+      });
+    }
   }
 
   return (
@@ -231,7 +285,6 @@ export default function ProductPage() {
               </div>
             </div>
 
-            {/* CTA buttons */}
             <div className="flex flex-col gap-3">
               <button
                 onClick={handleAddToCart}
@@ -244,10 +297,14 @@ export default function ProductPage() {
                 {addedFeedback ? "✓ Added to Cart!" : "Add to Cart"}
               </button>
               <button
-                onClick={() => { handleAddToCart(); openCart(); }}
-                className="w-full border-2 border-gray-900 text-gray-900 font-bold text-sm py-3 rounded-full hover:bg-gray-50 transition-colors uppercase tracking-wide"
+                onClick={() => void handleToggleWishlist()}
+                className={`w-full border-2 font-bold text-sm py-3 rounded-full transition-colors uppercase tracking-wide ${
+                  wishlisted
+                    ? "border-green-600 bg-green-600 text-white hover:bg-green-700"
+                    : "border-gray-900 text-gray-900 hover:bg-gray-50"
+                }`}
               >
-                Add to Wishlist
+                {wishlisted ? "✓ Wishlisted" : "Add to Wishlist"}
               </button>
             </div>
           </div>

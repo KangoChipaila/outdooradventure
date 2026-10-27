@@ -1,5 +1,8 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { apiFetch } from "../utils/api";
 import { PRODUCTS } from "../data/products";
+import type { Product } from "../data/products";
 
 function ImgPlaceholder() {
   return (
@@ -20,11 +23,22 @@ function ImgPlaceholder() {
 }
 
 export default function PopularItems() {
+  // Start with static data so the page renders instantly while API loads
+  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+
+  useEffect(() => {
+    apiFetch<Product[]>("/api/products")
+      .then(setProducts)
+      .catch(() => {
+        // API unavailable — keep showing static fallback
+      });
+  }, []);
+
   return (
     <section className="w-full bg-gray-100 py-8 px-4 md:px-8" aria-label="Popular items">
       <h2 className="text-sm font-bold text-gray-800 mb-4">Popular Items</h2>
       <div className="grid grid-cols-5 gap-4">
-        {PRODUCTS.map((product) => (
+        {products.map((product) => (
           <Link
             key={product.id}
             to={`/product/${product.id}`}

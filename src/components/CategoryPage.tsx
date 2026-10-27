@@ -1,6 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PRODUCTS } from "../data/products";
+import type { Product } from "../data/products";
+import { apiFetch } from "../utils/api";
 import { formatZMW } from "../utils/currency";
 import Footer from "./Footer";
 
@@ -109,14 +111,22 @@ export default function CategoryPage() {
     categories: [],
   };
 
+  const [allProducts, setAllProducts] = useState<Product[]>(PRODUCTS);
   const [sort, setSort] = useState<SortKey>("default");
   const [activeCategory, setActiveCategory] = useState<string>("All");
 
+  // Fetch products from API; fall back to static data on error
+  useEffect(() => {
+    apiFetch<Product[]>("/api/products")
+      .then(setAllProducts)
+      .catch(() => {});
+  }, []);
+
   // Derive the full set of product categories available for this page's filter pills
   const baseProducts = useMemo(() => {
-    if (config.categories.length === 0) return PRODUCTS;
-    return PRODUCTS.filter((p) => config.categories.includes(p.category));
-  }, [config.categories]);
+    if (config.categories.length === 0) return allProducts;
+    return allProducts.filter((p) => config.categories.includes(p.category));
+  }, [config.categories, allProducts]);
 
   const availableCategories = useMemo(() => {
     const cats = Array.from(new Set(baseProducts.map((p) => p.category)));

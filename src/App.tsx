@@ -1,4 +1,5 @@
 import { Routes, Route, useLocation } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { WishlistProvider } from "./context/WishlistContext";
 import Navbar from "./components/Navbar";
@@ -17,6 +18,7 @@ import UserProfile from "./components/UserProfile";
 import CategoryPage from "./components/CategoryPage";
 import FAQs from "./components/FAQs";
 import HelpAndFeedback from "./components/HelpAndFeedback";
+import Checkout from "./components/Checkout";
 
 function HomePage() {
   return (
@@ -37,29 +39,32 @@ function App() {
   const location = useLocation();
 
   return (
-    <CartProvider>
-      <WishlistProvider>
-        {/* Navbar is always visible */}
-        { location.pathname !== "/login" && location.pathname !== "/signup" && <Navbar /> }
+    <AuthProvider>
+      <CartProvider>
+        <WishlistProvider>
+          {/* Navbar is always visible */}
+          { location.pathname !== "/login" && location.pathname !== "/signup" && <Navbar /> }
 
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/product/:id" element={<div className="pt-[56px]"><ProductPage /></div>} />
-          <Route path="/firsttimers" element={<FirstTimers />} />
-          <Route path="/login" element={<LogIn />}/>
-          <Route path="/signup" element={<SignUp />}/>
-          <Route path="/profile" element={<UserProfile />}/>
-          <Route path="/category/:slug" element={<CategoryPage />}/>
-          <Route path="/faqs" element={<FAQs />}/>
-          <Route path="/help" element={<HelpAndFeedback />}/>
-        </Routes>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/product/:id" element={<div className="pt-[56px]"><ProductPage /></div>} />
+            <Route path="/firsttimers" element={<FirstTimers />} />
+            <Route path="/login" element={<LogIn />}/>
+            <Route path="/signup" element={<SignUp />}/>
+            <Route path="/profile" element={<UserProfile />}/>
+            <Route path="/category/:slug" element={<CategoryPage />}/>
+            <Route path="/faqs" element={<FAQs />}/>
+            <Route path="/help" element={<HelpAndFeedback />}/>
+            <Route path="/checkout" element={<Checkout />}/>
+          </Routes>
 
-        {/* Cart drawer — always mounted so it can open from any page */}
-        <Cart />
-        {/* Wishlist drawer — always mounted so it can open from any page */}
-        <Wishlist />
-      </WishlistProvider>
-    </CartProvider>
+          {/* Cart drawer — always mounted so it can open from any page */}
+          <Cart />
+          {/* Wishlist drawer — always mounted so it can open from any page */}
+          <Wishlist />
+        </WishlistProvider>
+      </CartProvider>
+    </AuthProvider>
   );
 }
 

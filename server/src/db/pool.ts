@@ -1,4 +1,8 @@
+import dotenv from "dotenv";
+import path from "path";
 import { Pool } from "pg";
+
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 /**
  * Single shared connection pool for the entire server process.

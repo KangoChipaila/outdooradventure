@@ -14,11 +14,78 @@ function formatOrderDate(date: Date | string): string {
   });
 }
 
+function generateOrderId(): string {
+  const n = Math.floor(Math.random() * 99999).toString().padStart(5, "0");
+  return `ORD-${n}`;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Route registration
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function registerOrderRoutes(router: Router): void {
+
+  // ── POST /api/orders ──────────────────────────────────────────────────────
+  // Place a new order. Body: { items: [{ productName, quantity, unitPrice }], total }
+  router.post("/api/orders", async (req: Request, res: Response) => {
+    const userId = requireAuth(req, res);
+    if (!userId) return;
+
+    const body = req.body as {
+      items: { productName: string; quantity: number; unitPrice: number }[];
+      total: number;
+    };
+
+    if (!Array.isArray(body?.items) || body.items.length === 0) {
+      return json(res, 400, { error: "items array is required and must not be empty." });
+    }
+    if (typeof body.total !== "number" || body.total < 0) {
+      return json(res, 400, { error: "total must be a non-negative number." });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      // Generate a unique order ID (retry on collision)
+      let orderId = generateOrderId();
+      let attempts = 0;
+      while (attempts < 5) {
+        const check = await client.query<{ id: string }>(
+          "SELECT id FROM orders WHERE id = $1",
+          [orderId]
+        );
+        if (!check.rowCount) break;
+        orderId = generateOrderId();
+        attempts++;
+      }
+
+      await client.query(
+        "INSERT INTO orders (id, user_id, total) VALUES ($1, $2, $3)",
+        [orderId, userId, body.total]
+      );
+
+      for (const item of body.items) {
+        await client.query(
+          "INSERT INTO order_items (order_id, product_name, quantity, unit_price) VALUES ($1, $2, $3, $4)",
+          [orderId, item.productName, item.quantity, item.unitPrice]
+        );
+      }
+
+      await client.query("COMMIT");
+
+      return json(res, 201, {
+        id: orderId,
+        status: "Processing",
+        total: body.total,
+      });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
+  });
 
   // ── GET /api/users/me/orders ──────────────────────────────────────────────
   // Returns the authenticated user's full order history with item names.

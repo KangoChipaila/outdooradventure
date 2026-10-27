@@ -54,15 +54,15 @@ export default function Wishlist() {
   if (!wishlistOpen) return null;
 
   function handleMoveToCart(item: (typeof items)[number]) {
-    addToCart({ id: item.id, name: item.name, price: item.price, img: item.img });
-    removeItem(item.id);
+    addToCart({ id: item.productId, name: item.name, price: item.price, img: item.img });
+    void removeItem(item.id);
     closeWishlist();
     openCart();
   }
 
   function handleMoveAllToCart() {
     items.forEach((item) =>
-      addToCart({ id: item.id, name: item.name, price: item.price, img: item.img })
+      addToCart({ id: item.productId, name: item.name, price: item.price, img: item.img })
     );
     clearWishlist();
     closeWishlist();
@@ -188,7 +188,7 @@ export default function Wishlist() {
                         Add to Cart
                       </button>
                       <button
-                        onClick={() => removeItem(item.id)}
+                        onClick={() => void removeItem(item.id)}
                         aria-label={`Remove ${item.name} from wishlist`}
                         className="text-xs text-red-400 hover:text-red-600 transition-colors"
                       >

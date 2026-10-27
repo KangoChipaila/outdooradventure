@@ -1,8 +1,11 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import type { ReactNode } from "react";
+import { useAuth } from "./AuthContext";
+import { apiFetch } from "../utils/api";
 
 export interface WishlistItem {
-  id: number;
+  id: number;         // saved_items.id (row id, not product id)
+  productId: number;  // product id
   name: string;
   price: number;
   img?: string;
@@ -13,53 +16,133 @@ interface WishlistContextValue {
   wishlistOpen: boolean;
   openWishlist: () => void;
   closeWishlist: () => void;
-  addItem: (item: WishlistItem) => void;
-  removeItem: (id: number) => void;
+  addItem: (item: Omit<WishlistItem, "id">) => Promise<void>;
+  removeItem: (savedItemId: number) => Promise<void>;
   clearWishlist: () => void;
-  isWishlisted: (id: number) => boolean;
+  isWishlisted: (productId: number) => boolean;
   itemCount: number;
 }
 
 const WishlistContext = createContext<WishlistContextValue | null>(null);
 
-// Seed data — a couple of items so the drawer isn't empty on first open
-const INITIAL_ITEMS: WishlistItem[] = [
-  {
-    id: 3,
-    name: "Hardshell Jacket",
-    price: 4199.0,
-    img: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=120&q=80",
-  },
-  {
-    id: 7,
-    name: "Headlamp",
-    price: 699.0,
-    img: "",
-  },
-];
+// ── Sync shape from server ────────────────────────────────────────────────────
+
+interface SavedItemPublic {
+  id: number;
+  productId: number;
+  name: string;
+  price: number;
+  img: string;
+}
 
 export function WishlistProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<WishlistItem[]>(INITIAL_ITEMS);
+  const { isAuthenticated, token } = useAuth();
+
+  const [items, setItems] = useState<WishlistItem[]>([]);
   const [wishlistOpen, setWishlistOpen] = useState(false);
+
+  // Load wishlist from API whenever auth state changes
+  useEffect(() => {
+    if (!isAuthenticated || !token) {
+      setItems([]);
+      return;
+    }
+
+    apiFetch<SavedItemPublic[]>("/api/users/me/saved-items", { token })
+      .then((saved) =>
+        setItems(
+          saved.map((s) => ({
+            id: s.id,
+            productId: s.productId,
+            name: s.name,
+            price: s.price,
+            img: s.img,
+          }))
+        )
+      )
+      .catch(() => {
+        // Network error or expired token — leave list empty
+      });
+  }, [isAuthenticated, token]);
 
   const openWishlist = useCallback(() => setWishlistOpen(true), []);
   const closeWishlist = useCallback(() => setWishlistOpen(false), []);
 
-  const addItem = useCallback((newItem: WishlistItem) => {
-    setItems((prev) => {
-      if (prev.find((i) => i.id === newItem.id)) return prev; // already saved
-      return [...prev, newItem];
-    });
-  }, []);
+  const addItem = useCallback(
+    async (newItem: Omit<WishlistItem, "id">) => {
+      if (!isAuthenticated || !token) return;
 
-  const removeItem = useCallback((id: number) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
-  }, []);
+      // Optimistic update
+      const tempId = Date.now(); // placeholder until server responds
+      setItems((prev) => {
+        if (prev.find((i) => i.productId === newItem.productId)) return prev;
+        return [...prev, { ...newItem, id: tempId }];
+      });
+
+      try {
+        await apiFetch("/api/users/me/saved-items", {
+          method: "POST",
+          token,
+          body: { productId: newItem.productId },
+        });
+        // Refresh to get the real saved_item id
+        const saved = await apiFetch<SavedItemPublic[]>(
+          "/api/users/me/saved-items",
+          { token }
+        );
+        setItems(
+          saved.map((s) => ({
+            id: s.id,
+            productId: s.productId,
+            name: s.name,
+            price: s.price,
+            img: s.img,
+          }))
+        );
+      } catch {
+        // Roll back optimistic update on failure
+        setItems((prev) => prev.filter((i) => i.id !== tempId));
+      }
+    },
+    [isAuthenticated, token]
+  );
+
+  const removeItem = useCallback(
+    async (savedItemId: number) => {
+      if (!isAuthenticated || !token) return;
+
+      // Optimistic update
+      setItems((prev) => prev.filter((i) => i.id !== savedItemId));
+
+      try {
+        await apiFetch(`/api/users/me/saved-items/${savedItemId}`, {
+          method: "DELETE",
+          token,
+        });
+      } catch {
+        // If delete failed, re-fetch to restore correct state
+        const saved = await apiFetch<SavedItemPublic[]>(
+          "/api/users/me/saved-items",
+          { token }
+        ).catch(() => [] as SavedItemPublic[]);
+        setItems(
+          saved.map((s) => ({
+            id: s.id,
+            productId: s.productId,
+            name: s.name,
+            price: s.price,
+            img: s.img,
+          }))
+        );
+      }
+    },
+    [isAuthenticated, token]
+  );
 
   const clearWishlist = useCallback(() => setItems([]), []);
 
   const isWishlisted = useCallback(
-    (id: number) => items.some((i) => i.id === id),
+    (productId: number) => items.some((i) => i.productId === productId),
     [items]
   );
 

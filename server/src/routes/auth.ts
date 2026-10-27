@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt";
+import * as bcrypt from "bcrypt";
 import crypto from "crypto";
 import pool from "../db/pool";
 import { json } from "../router";

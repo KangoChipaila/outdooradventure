@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
+import { useAuth } from "../context/AuthContext";
+import { apiFetch } from "../utils/api";
 
 const navLinks = ["Activities", "Women", "Men", "Children", "Shoes", "Clothing"];
 
@@ -10,6 +12,8 @@ export default function Navbar() {
   const menuRef = useRef<HTMLDivElement>(null);
   const { openCart, itemCount } = useCart();
   const { openWishlist, itemCount: wishlistCount } = useWishlist();
+  const { isAuthenticated, token, logout } = useAuth();
+  const navigate = useNavigate();
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -21,6 +25,16 @@ export default function Navbar() {
     if (menuOpen) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [menuOpen]);
+
+  async function handleLogout() {
+    try {
+      await apiFetch("/api/auth/logout", { method: "POST", token });
+    } catch {
+      // Server-side session cleanup failed — clear client state anyway
+    }
+    logout();
+    navigate("/");
+  }
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white flex items-center justify-between px-4 py-3 shadow-sm">
@@ -39,8 +53,12 @@ export default function Navbar() {
 
       {/* Icon group */}
       <div className="flex items-center gap-5">
-        {/* User */}
-        <Link to="/profile" aria-label="Account" className="text-gray-800 hover:text-green-700 transition-colors">
+        {/* User — goes to profile if logged in, login page if not */}
+        <Link
+          to={isAuthenticated ? "/profile" : "/login"}
+          aria-label={isAuthenticated ? "My account" : "Log in"}
+          className="text-gray-800 hover:text-green-700 transition-colors"
+        >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-6 h-6">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
           </svg>
@@ -142,6 +160,24 @@ export default function Navbar() {
                 >
                   FAQs
                 </Link>
+                {isAuthenticated ? (
+                  <button
+                    role="menuitem"
+                    onClick={() => { setMenuOpen(false); void handleLogout(); }}
+                    className="block w-full text-center text-xs font-bold text-red-600 border border-red-300 rounded-full py-2 px-3 hover:bg-red-50 transition-colors"
+                  >
+                    Log Out
+                  </button>
+                ) : (
+                  <Link
+                    to="/login"
+                    role="menuitem"
+                    className="block w-full text-center text-xs font-bold text-green-700 border border-green-500 rounded-full py-2 px-3 hover:bg-green-50 transition-colors"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Log In
+                  </Link>
+                )}
               </div>
             </div>
           )}

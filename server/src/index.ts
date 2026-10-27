@@ -1,4 +1,6 @@
+import dotenv from "dotenv";
 import http from "http";
+import path from "path";
 import { Router, json } from "./router";
 import { registerAuthRoutes } from "./routes/auth";
 import { registerUserRoutes } from "./routes/users";
@@ -7,11 +9,20 @@ import { registerAdminRoutes } from "./routes/admin";
 import { registerOrderRoutes } from "./routes/orders";
 import { registerSavedItemRoutes } from "./routes/savedItems";
 
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Configuration
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PORT = Number(process.env.PORT ?? 4000);
+
+console.log(
+  `[config] database=${process.env.PGDATABASE ?? "green_rock_outdoor_gear"} ` +
+    `user=${process.env.PGUSER ?? "postgres"} ` +
+    `host=${process.env.PGHOST ?? "localhost"}:${process.env.PGPORT ?? "5432"} ` +
+    `password=${process.env.PGPASSWORD ? "set" : "missing"}`,
+);
 
 // Origins that are allowed to call the API.
 // In development the Vite dev server runs on port 5173 by default.

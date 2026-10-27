@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { formatZMW } from "../utils/currency";
 
@@ -20,6 +21,7 @@ function EmptyCart() {
 export default function Cart() {
   const { items, cartOpen, closeCart, removeItem, updateQty, clearCart, itemCount, subtotal } = useCart();
   const drawerRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   const shipping = subtotal >= SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
   const total = subtotal + shipping;
@@ -217,7 +219,10 @@ export default function Cart() {
             </div>
 
             {/* Checkout button */}
-            <button className="w-full bg-green-600 hover:bg-green-700 text-white font-bold text-sm py-3 rounded-full transition-colors uppercase tracking-wide">
+            <button
+              onClick={() => { closeCart(); navigate("/checkout"); }}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold text-sm py-3 rounded-full transition-colors uppercase tracking-wide"
+            >
               Checkout — {formatZMW(total)}
             </button>
 

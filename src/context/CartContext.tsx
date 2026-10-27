@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import type { ReactNode } from "react";
 
 export interface CartItem {
@@ -26,39 +26,29 @@ interface CartContextValue {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
-// Seed data — representative items so the cart isn't empty on first load
-const INITIAL_ITEMS: CartItem[] = [
-  {
-    id: 1,
-    name: "Trail Running Shoe",
-    price: 2499.99,
-    qty: 1,
-    size: "UK 10",
-    color: "Olive",
-    img: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=120&q=80",
-  },
-  {
-    id: 2,
-    name: "Polarised Sunglasses",
-    price: 1249.50,
-    qty: 2,
-    color: "Teal",
-    img: "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=120&q=80",
-  },
-  {
-    id: 3,
-    name: "Hardshell Jacket",
-    price: 4199.00,
-    qty: 1,
-    size: "M",
-    color: "Black / Lime",
-    img: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=120&q=80",
-  },
-];
+const STORAGE_KEY = "gr_cart_items";
+
+function loadFromStorage(): CartItem[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as CartItem[]) : [];
+  } catch {
+    return [];
+  }
+}
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>(INITIAL_ITEMS);
+  const [items, setItems] = useState<CartItem[]>(loadFromStorage);
   const [cartOpen, setCartOpen] = useState(false);
+
+  // Persist to localStorage whenever items change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    } catch {
+      // silent fail
+    }
+  }, [items]);
 
   const openCart = useCallback(() => setCartOpen(true), []);
   const closeCart = useCallback(() => setCartOpen(false), []);
