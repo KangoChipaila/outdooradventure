@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { useWishlist } from "../context/WishlistContext";
-import { useCart } from "../context/CartContext";
+import { useWishlist } from "../stores/wishlistStore";
+import { useCart } from "../stores/cartStore";
 import { formatZMW } from "../utils/currency";
 
 function EmptyWishlist() {

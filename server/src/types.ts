@@ -34,6 +34,7 @@ export interface UserRow {
   phone: string | null;
   password_hash: string;
   member_tier: string;
+  is_admin: boolean;
   notif_order_updates: boolean;
   notif_deals: boolean;
   notif_new_arrivals: boolean;
@@ -52,6 +53,7 @@ export interface UserPublic {
   memberSince: string; // formatted date string
   memberTier: string;
   avatarInitials: string;
+  isAdmin: boolean;
   notifications: NotificationPreferences;
 }
 

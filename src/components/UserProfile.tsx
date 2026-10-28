@@ -155,19 +155,8 @@ export default function UserProfile() {
       });
   }, [token]);
 
-  // Sync edit draft when authUser changes (e.g. after a save)
-  useEffect(() => {
-    if (authUser) {
-      setEditDraft({
-        firstName: authUser.firstName,
-        lastName: authUser.lastName,
-        email: authUser.email,
-        phone: authUser.phone ?? "",
-      });
-    }
-  }, [authUser]);
-
   if (!authUser) return null;
+  const currentUser = authUser;
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -196,10 +185,10 @@ export default function UserProfile() {
 
   function cancelPersonal() {
     setEditDraft({
-      firstName: authUser.firstName,
-      lastName: authUser.lastName,
-      email: authUser.email,
-      phone: authUser.phone ?? "",
+      firstName: currentUser.firstName,
+      lastName: currentUser.lastName,
+      email: currentUser.email,
+      phone: currentUser.phone ?? "",
     });
     setEditingPersonal(false);
     setSaveError("");
@@ -252,7 +241,7 @@ export default function UserProfile() {
         token,
         body: prefs,
       });
-      updateUser({ ...authUser, notifications: prefs });
+      updateUser({ ...currentUser, notifications: prefs });
     } catch {
       // silent — toggles will revert on next load
     }

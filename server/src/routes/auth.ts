@@ -35,6 +35,7 @@ function toPublicUser(row: UserRow): UserPublic {
     memberSince,
     memberTier: row.member_tier,
     avatarInitials: initials,
+    isAdmin: row.is_admin,
     notifications: {
       orderUpdates: row.notif_order_updates,
       deals: row.notif_deals,
@@ -122,6 +123,69 @@ export function registerAuthRoutes(router: Router): void {
 
     const response: AuthResponse = { token, user: toPublicUser(user) };
     return json(res, 200, response);
+  });
+
+  // ── POST /api/auth/bootstrap-admin ────────────────────────────────────────
+  // Creates the first admin account if none exists yet. Useful for initial setup
+  // when there is no admin user in the database.
+  router.post("/api/auth/bootstrap-admin", async (req: Request, res: Response) => {
+    const body = req.body as {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      password?: string;
+    };
+    const { firstName, lastName, email, password } = body ?? {};
+
+    if (!firstName || !lastName || !email || !password) {
+      return json(res, 400, {
+        error: "firstName, lastName, email and password are required.",
+      });
+    }
+
+    if (password.length < 8) {
+      return json(res, 400, { error: "Password must be at least 8 characters." });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return json(res, 400, { error: "Invalid email address." });
+    }
+
+    const adminExists = await pool.query<{ exists: boolean }>(
+      "SELECT EXISTS (SELECT 1 FROM users WHERE is_admin = TRUE) AS exists"
+    );
+    if (adminExists.rows[0]?.exists) {
+      return json(res, 409, { error: "An admin account already exists." });
+    }
+
+    const existing = await pool.query<{ id: number }>(
+      "SELECT id FROM users WHERE email = $1",
+      [email.toLowerCase().trim()]
+    );
+    if (existing.rowCount && existing.rowCount > 0) {
+      return json(res, 409, { error: "An account with that email already exists." });
+    }
+
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    const insertResult = await pool.query<UserRow>(
+      `INSERT INTO users (
+        first_name,
+        last_name,
+        email,
+        phone,
+        password_hash,
+        member_tier,
+        is_admin
+      ) VALUES ($1, $2, $3, $4, $5, 'Summit Member', TRUE)
+      RETURNING *`,
+      [firstName.trim(), lastName.trim(), email.toLowerCase().trim(), null, passwordHash]
+    );
+
+    const user = insertResult.rows[0];
+    const token = crypto.randomBytes(32).toString("hex");
+    sessions.set(token, user.id);
+
+    return json(res, 201, { token, user: toPublicUser(user) });
   });
 
   // ── POST /api/auth/logout ─────────────────────────────────────────────────

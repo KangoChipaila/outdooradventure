@@ -1,26 +1,12 @@
-import { CartProvider } from "../context/CartContext";
 import Navbar from "./Navbar";
 import Cart from "./Cart";
 import chevron from "../assets/Chevron.png";
 import triangle from "../assets/triangle.png";
-import { useState } from "react";
 
 function FirstTimers(){
 
-    interface NewbieForm{
-        activityType: string;
-        budget: number;
-        expectedTerrain: string;
-    }
-
-    const [formData, setFormData] = useState<NewbieForm>({
-        activityType: "",
-        budget: 0,
-        expectedTerrain: ""
-    });
-
     return(
-        <CartProvider>
+        <>
             <Navbar />
                 <section
                     className="relative h-[80vh] bg-cover bg-no-repeat bg-center w-full flex flex-col gap-30 items-center justify-center"
@@ -49,7 +35,7 @@ function FirstTimers(){
                     <input id="expected-terrain" name="expected-terrain" type="text"></input>
                 </form>
             <Cart />
-        </CartProvider>
+        </>
     );
 
 }

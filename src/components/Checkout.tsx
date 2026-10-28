@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useCart } from "../context/CartContext";
+import { useCart, selectCartSubtotal } from "../stores/cartStore";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../utils/api";
 import { formatZMW } from "../utils/currency";
@@ -16,7 +16,8 @@ interface OrderResponse {
 }
 
 export default function Checkout() {
-  const { items, subtotal, clearCart } = useCart();
+  const { items, clearCart } = useCart();
+  const subtotal = useCart(selectCartSubtotal);
   const { isAuthenticated, token } = useAuth();
   const navigate = useNavigate();
 

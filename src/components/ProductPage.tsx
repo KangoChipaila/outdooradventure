@@ -3,8 +3,8 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { PRODUCTS } from "../data/products";
 import type { Product } from "../data/products";
 import { formatZMW } from "../utils/currency";
-import { useCart } from "../context/CartContext";
-import { useWishlist } from "../context/WishlistContext";
+import { useCart } from "../stores/cartStore";
+import { useWishlist } from "../stores/wishlistStore";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../utils/api";
 import Footer from "./Footer";
@@ -44,7 +44,7 @@ function ImgPlaceholder() {
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { addItem, openCart } = useCart();
+  const { addItem } = useCart();
   const { addItem: addToWishlist, isWishlisted, removeItem: removeWishlistItem, items: wishlistItems } = useWishlist();
   const { isAuthenticated } = useAuth();
 

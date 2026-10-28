@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCart } from "../context/CartContext";
+import { useCart, selectCartItemCount, selectCartSubtotal } from "../stores/cartStore";
 import { formatZMW } from "../utils/currency";
 
 const SHIPPING_THRESHOLD = 2500; // ZMW free-shipping threshold
@@ -19,7 +19,9 @@ function EmptyCart() {
 }
 
 export default function Cart() {
-  const { items, cartOpen, closeCart, removeItem, updateQty, clearCart, itemCount, subtotal } = useCart();
+  const { items, cartOpen, closeCart, removeItem, updateQty, clearCart } = useCart();
+  const itemCount = useCart(selectCartItemCount);
+  const subtotal = useCart(selectCartSubtotal);
   const drawerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 

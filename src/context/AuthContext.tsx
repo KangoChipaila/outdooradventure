@@ -18,6 +18,7 @@ export interface AuthUser {
   memberSince: string;
   memberTier: string;
   avatarInitials: string;
+  isAdmin: boolean;
   notifications: {
     orderUpdates: boolean;
     deals: boolean;

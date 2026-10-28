@@ -1,8 +1,8 @@
 import { Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import { CartProvider } from "./context/CartContext";
-import { WishlistProvider } from "./context/WishlistContext";
+import WishlistSync from "./components/WishlistSync";
 import Navbar from "./components/Navbar";
+import AdminPage from "./components/AdminPage";
 import Hero from "./components/Hero";
 import Deals from "./components/Deals";
 import CTA from "./components/CTA";
@@ -19,6 +19,7 @@ import CategoryPage from "./components/CategoryPage";
 import FAQs from "./components/FAQs";
 import HelpAndFeedback from "./components/HelpAndFeedback";
 import Checkout from "./components/Checkout";
+import AdminBootstrap from "./components/AdminBootstrap";
 
 function HomePage() {
   return (
@@ -40,8 +41,7 @@ function App() {
 
   return (
     <AuthProvider>
-      <CartProvider>
-        <WishlistProvider>
+      <WishlistSync>
           {/* Navbar is always visible */}
           { location.pathname !== "/login" && location.pathname !== "/signup" && <Navbar /> }
 
@@ -56,14 +56,15 @@ function App() {
             <Route path="/faqs" element={<FAQs />}/>
             <Route path="/help" element={<HelpAndFeedback />}/>
             <Route path="/checkout" element={<Checkout />}/>
+            <Route path="/admin/bootstrap" element={<div className="pt-[72px]"><AdminBootstrap /></div>} />
+            <Route path="/admin" element={<div className="pt-[72px]"><AdminPage /></div>} />
           </Routes>
 
           {/* Cart drawer — always mounted so it can open from any page */}
           <Cart />
           {/* Wishlist drawer — always mounted so it can open from any page */}
           <Wishlist />
-        </WishlistProvider>
-      </CartProvider>
+      </WishlistSync>
     </AuthProvider>
   );
 }

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useCart } from "../context/CartContext";
-import { useWishlist } from "../context/WishlistContext";
+import { useCart, selectCartItemCount } from "../stores/cartStore";
+import { useWishlist } from "../stores/wishlistStore";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../utils/api";
 
@@ -10,9 +10,10 @@ const navLinks = ["Activities", "Women", "Men", "Children", "Shoes", "Clothing"]
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { openCart, itemCount } = useCart();
+  const { openCart } = useCart();
+  const itemCount = useCart(selectCartItemCount);
   const { openWishlist, itemCount: wishlistCount } = useWishlist();
-  const { isAuthenticated, token, logout } = useAuth();
+  const { isAuthenticated, token, logout, user } = useAuth();
   const navigate = useNavigate();
 
   // Close menu when clicking outside
@@ -160,6 +161,16 @@ export default function Navbar() {
                 >
                   FAQs
                 </Link>
+                {user?.isAdmin && (
+                  <Link
+                    to="/admin"
+                    role="menuitem"
+                    className="block w-full text-center text-xs font-bold text-green-700 border border-green-500 rounded-full py-2 px-3 hover:bg-green-50 transition-colors"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Admin
+                  </Link>
+                )}
                 {isAuthenticated ? (
                   <button
                     role="menuitem"

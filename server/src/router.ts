@@ -13,7 +13,7 @@ export interface Request extends IncomingMessage {
   body: unknown;
 }
 
-export interface Response extends ServerResponse {}
+export type Response = ServerResponse;
 
 export type Handler = (req: Request, res: Response) => Promise<void> | void;
 

@@ -83,7 +83,7 @@ function parseParts(body: Buffer, boundary: string): MultipartResult {
   let searchStart = 0;
 
   // Find the first boundary
-  let idx = indexOf(body, firstDelimiter, searchStart);
+  const idx = indexOf(body, firstDelimiter, searchStart);
   if (idx === -1) return result; // malformed — return empty
 
   searchStart = idx + firstDelimiter.length;
