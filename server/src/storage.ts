@@ -2,7 +2,9 @@ import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import crypto from "crypto";
 import path from "path";
 
@@ -23,8 +25,14 @@ export function getPublicBaseUrl(): string {
   return requireEnv("FILEBASE_PUBLIC_URL").replace(/\/$/, "");
 }
 
+function objectKeyFromUrl(value: string): string | null {
+  const publicBase = getPublicBaseUrl();
+  if (!value.startsWith(`${publicBase}/`)) return null;
+  return value.slice(publicBase.length + 1);
+}
+
 function getEndpoint(): string {
-  return (getConfigValue("FILEBASE_ENDPOINT") ?? "https://s3.filebase.com").replace(/\/$/, "");
+  return (getConfigValue("FILEBASE_ENDPOINT") ?? "https://s3.filebase.io").replace(/\/$/, "");
 }
 
 function getBucketName(): string {
@@ -45,8 +53,9 @@ function getClient(): S3Client {
   if (client) return client;
 
   client = new S3Client({
-    region: getConfigValue("FILEBASE_REGION") ?? "us-east-1",
+    region: getConfigValue("FILEBASE_REGION") ?? "auto",
     endpoint: getEndpoint(),
+    forcePathStyle: true,
     credentials: {
       accessKeyId: getAccessKeyId(),
       secretAccessKey: getSecretAccessKey(),
@@ -73,6 +82,41 @@ export interface UploadResult {
   url: string;
 }
 
+export async function createImageReadUrl(value: string): Promise<string> {
+  const key = objectKeyFromUrl(value);
+  if (!key) return value;
+
+  return getSignedUrl(
+    getClient(),
+    new GetObjectCommand({ Bucket: getBucketName(), Key: key }),
+    { expiresIn: 900 }
+  );
+}
+
+export async function createImageUploadUrl(
+  mimeType: string,
+  folder: string,
+  slot: string
+): Promise<UploadResult & { uploadUrl: string }> {
+  if (!isAllowedImageType(mimeType)) {
+    throw new Error(`Unsupported image type: ${mimeType}`);
+  }
+
+  const suffix = crypto.randomBytes(4).toString("hex");
+  const key = `${folder}/${slot}-${suffix}${ALLOWED_MIME_TYPES[mimeType]}`;
+  const uploadUrl = await getSignedUrl(
+    getClient(),
+    new PutObjectCommand({
+      Bucket: getBucketName(),
+      Key: key,
+      ContentType: mimeType,
+    }),
+    { expiresIn: 600 }
+  );
+
+  return { key, url: `${getPublicBaseUrl()}/${key}`, uploadUrl };
+}
+
 export async function uploadImage(
   buffer: Buffer,
   mimeType: string,
@@ -92,8 +136,8 @@ export async function uploadImage(
       Key: key,
       Body: buffer,
       ContentType: mimeType,
-      CacheControl: "public, max-age=31536000, immutable",
-    })
+    }),
+    { abortSignal: AbortSignal.timeout(30000) }
   );
 
   return { key, url: `${getPublicBaseUrl()}/${key}` };

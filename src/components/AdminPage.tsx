@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { apiFetch, apiUrl } from "../utils/api";
+import { apiFetch } from "../utils/api";
 
 import type { Product } from "../types";
 
@@ -41,31 +41,29 @@ function parseList(value: string): string[] {
 }
 
 async function uploadProductImage(productId: number, file: File, kind: "main" | "gallery", token: string) {
-  const formData = new FormData();
-  formData.append("image", file);
-
-  const response = await fetch(apiUrl(`/api/admin/products/${productId}/images/${kind}`), {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    body: formData,
+  const uploadDetails = await apiFetch<{ uploadUrl: string; key: string; url: string }>(
+    `/api/admin/products/${productId}/images/${kind}/upload-url`,
+    { method: "POST", token, body: { mimeType: file.type } }
+  );
+  const uploadResponse = await fetch(uploadDetails.uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type },
+    signal: AbortSignal.timeout(30000),
+    body: file,
   });
-
-  const contentType = response.headers.get("content-type") ?? "";
-  const payload = contentType.includes("application/json")
-    ? (await response.json()) as { error?: string }
-    : {};
-  if (!response.ok) {
-    throw new Error(payload.error ?? `Upload failed (${response.status})`);
+  if (!uploadResponse.ok) {
+    throw new Error(`Filebase upload failed (${uploadResponse.status})`);
   }
 
-  return payload;
+  await apiFetch(`/api/admin/products/${productId}/images/${kind}/complete`, {
+    method: "POST",
+    token,
+    body: { key: uploadDetails.key, url: uploadDetails.url },
+  });
 }
-
 export default function AdminPage() {
   const navigate = useNavigate();
-  const { isAuthenticated, user, token } = useAuth();
+  const { isAuthenticated, user, token, logout } = useAuth();
   const [products, setProducts] = useState<ProductRecord[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<ProductFormState>(emptyForm);
@@ -74,6 +72,16 @@ export default function AdminPage() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [sortBy, setSortBy] = useState("name");
+  const [uploadingImage, setUploadingImage] = useState<string | null>(null);
+
+  const handleRequestError = useCallback((err: unknown, fallback: string) => {
+    if (err instanceof Error && err.message === "Invalid or expired token.") {
+      logout();
+      navigate("/login");
+      return;
+    }
+    setError(err instanceof Error ? err.message : fallback);
+  }, [logout, navigate]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -100,7 +108,7 @@ export default function AdminPage() {
         }
       } catch (err) {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : "Failed to load products.");
+          handleRequestError(err, "Failed to load products.");
         }
       }
     };
@@ -109,7 +117,7 @@ export default function AdminPage() {
     return () => {
       ignore = true;
     };
-  }, [isAuthenticated, token, user?.isAdmin]);
+  }, [handleRequestError, isAuthenticated, token, user?.isAdmin]);
 
   const formLabel = useMemo(
     () => (editingId === null ? "Create product" : `Editing product #${editingId}`),
@@ -192,17 +200,25 @@ export default function AdminPage() {
       });
       await refreshProducts();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update stock.");
+      handleRequestError(err, "Failed to update stock.");
     }
   }
 
   async function handleUpload(productId: number, kind: "main" | "gallery", file: File | null) {
     if (!file || !token) return;
+    const uploadKey = `${productId}-${kind}`;
+    setUploadingImage(uploadKey);
+    setError("");
     try {
       await uploadProductImage(productId, file, kind, token);
       await refreshProducts();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Image upload failed.");
+      const message = err instanceof DOMException && err.name === "TimeoutError"
+        ? "Image upload timed out. Check the Filebase endpoint and bucket permissions."
+        : "Image upload failed.";
+      handleRequestError(err, message);
+    } finally {
+      setUploadingImage(null);
     }
   }
 
@@ -248,7 +264,7 @@ export default function AdminPage() {
       await refreshProducts();
       resetForm();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save product.");
+      handleRequestError(err, "Failed to save product.");
     } finally {
       setLoading(false);
     }
@@ -264,7 +280,7 @@ export default function AdminPage() {
       await refreshProducts();
       if (editingId === id) resetForm();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete product.");
+      handleRequestError(err, "Failed to delete product.");
     }
   }
 
@@ -336,7 +352,7 @@ export default function AdminPage() {
                     />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold text-gray-900">{product.name}</p>
-                      <p className="text-xs text-gray-500">{product.brand} · {product.category}</p>
+                      <p className="text-xs text-gray-500">{product.brand} Â· {product.category}</p>
                       <p className="text-xs text-gray-500">Stock: {product.stock}</p>
                     </div>
                     <div className="flex gap-2">
@@ -363,7 +379,7 @@ export default function AdminPage() {
                       onClick={() => void handleQuickStockUpdate(product.id ?? 0, -1)}
                       className="h-8 w-8 rounded-full border border-gray-300 text-base font-semibold text-gray-700 hover:bg-gray-100"
                     >
-                      −
+                      -
                     </button>
                     <span className="min-w-8 text-center text-sm font-semibold text-gray-900">{product.stock}</span>
                     <button
@@ -374,21 +390,31 @@ export default function AdminPage() {
                       +
                     </button>
                     <label className="ml-auto cursor-pointer rounded-full border border-green-600 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-green-700 hover:bg-green-50">
-                      Main image
+                      {uploadingImage === `${product.id}-main` ? "Uploading..." : "Main image"}
                       <input
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={(event) => void handleUpload(product.id ?? 0, "main", event.target.files?.[0] ?? null)}
+                        disabled={uploadingImage !== null}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0] ?? null;
+                          event.currentTarget.value = "";
+                          void handleUpload(product.id ?? 0, "main", file);
+                        }}
                       />
                     </label>
                     <label className="cursor-pointer rounded-full border border-gray-300 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-700 hover:bg-gray-100">
-                      Gallery
+                      {uploadingImage === `${product.id}-gallery` ? "Uploading..." : "Gallery"}
                       <input
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={(event) => void handleUpload(product.id ?? 0, "gallery", event.target.files?.[0] ?? null)}
+                        disabled={uploadingImage !== null}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0] ?? null;
+                          event.currentTarget.value = "";
+                          void handleUpload(product.id ?? 0, "gallery", file);
+                        }}
                       />
                     </label>
                   </div>

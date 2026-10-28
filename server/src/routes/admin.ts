@@ -4,6 +4,8 @@ import type { Router, Request, Response } from "../router";
 import { requireAdmin } from "./auth";
 import { parseMultipart } from "../multipart";
 import {
+  createImageUploadUrl,
+  createImageReadUrl,
   deleteImage,
   isAllowedImageType,
   uploadImage,
@@ -12,7 +14,7 @@ import type { ProductRow, ProductPublic, UpdateStockBody } from "../types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function toPublicProduct(row: ProductRow): ProductPublic {
+async function toPublicProduct(row: ProductRow): Promise<ProductPublic> {
   return {
     id: row.id,
     name: row.name,
@@ -23,8 +25,8 @@ function toPublicProduct(row: ProductRow): ProductPublic {
     description: row.description,
     sizes: row.sizes,
     colors: row.colors,
-    img: row.img,
-    gallery: row.gallery,
+    img: await createImageReadUrl(row.img),
+    gallery: await Promise.all(row.gallery.map(createImageReadUrl)),
     category: row.category,
     stock: row.stock,
   };
@@ -37,6 +39,102 @@ function toPublicProduct(row: ProductRow): ProductPublic {
 
 export function registerAdminRoutes(router: Router): void {
 
+  // Create a short-lived URL so the browser uploads directly to Filebase.
+  router.post(
+    "/api/admin/products/:id/images/:kind/upload-url",
+    async (req: Request, res: Response) => {
+      const adminId = await requireAdmin(req, res);
+      if (!adminId) return;
+
+      const productId = Number(req.params.id);
+      const kind = req.params.kind;
+      if (!Number.isInteger(productId) || !["main", "gallery"].includes(kind)) {
+        return json(res, 400, { error: "Invalid image upload request." });
+      }
+
+      const existing = await pool.query<{ gallery: string[] }>(
+        "SELECT gallery FROM products WHERE id = $1",
+        [productId]
+      );
+      if (!existing.rowCount) return json(res, 404, { error: "Product not found." });
+
+      const body = req.body as { mimeType?: unknown };
+      if (typeof body.mimeType !== "string" || !isAllowedImageType(body.mimeType)) {
+        return json(res, 415, {
+          error: "Unsupported image type. Use JPEG, PNG, WebP, GIF, or AVIF.",
+        });
+      }
+      if (kind === "gallery" && (existing.rows[0].gallery ?? []).length >= 8) {
+        return json(res, 400, {
+          error: "Gallery is full (max 8 images). Remove one before adding more.",
+        });
+      }
+
+      try {
+        const slot = kind === "main"
+          ? "main"
+          : `gallery-${(existing.rows[0].gallery ?? []).length}`;
+        return json(res, 200, await createImageUploadUrl(
+          body.mimeType,
+          `products/${productId}`,
+          slot
+        ));
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Could not create upload URL.";
+        return json(res, 500, { error: message });
+      }
+    }
+  );
+
+  // Save the public URL after the direct Filebase upload has completed.
+  router.post(
+    "/api/admin/products/:id/images/:kind/complete",
+    async (req: Request, res: Response) => {
+      const adminId = await requireAdmin(req, res);
+      if (!adminId) return;
+
+      const productId = Number(req.params.id);
+      const kind = req.params.kind;
+      const body = req.body as { key?: unknown; url?: unknown };
+      if (!Number.isInteger(productId) || !["main", "gallery"].includes(kind)) {
+        return json(res, 400, { error: "Invalid image upload request." });
+      }
+      if (
+        typeof body.key !== "string" ||
+        typeof body.url !== "string" ||
+        !body.key.startsWith(`products/${productId}/`) ||
+        !body.url.startsWith(`${process.env.FILEBASE_PUBLIC_URL?.replace(/\/$/, "")}/`)
+      ) {
+        return json(res, 400, { error: "Invalid uploaded image reference." });
+      }
+
+      const existing = await pool.query<ProductRow>(
+        "SELECT * FROM products WHERE id = $1",
+        [productId]
+      );
+      if (!existing.rowCount) return json(res, 404, { error: "Product not found." });
+
+      let result;
+      if (kind === "main") {
+        result = await pool.query<ProductRow>(
+          "UPDATE products SET img = $1 WHERE id = $2 RETURNING *",
+          [body.url, productId]
+        );
+        if (existing.rows[0].img) {
+          deleteImage(existing.rows[0].img).catch((err: unknown) =>
+            console.warn("[storage] Failed to delete old main image:", err)
+          );
+        }
+      } else {
+        result = await pool.query<ProductRow>(
+          "UPDATE products SET gallery = array_append(gallery, $1) WHERE id = $2 RETURNING *",
+          [body.url, productId]
+        );
+      }
+      return json(res, 200, await toPublicProduct(result.rows[0]));
+    }
+  );
+
   // ── GET /api/admin/products ───────────────────────────────────────────────
   // Returns all products including stock levels — for the admin dashboard.
   router.get("/api/admin/products", async (req: Request, res: Response) => {
@@ -46,7 +144,7 @@ export function registerAdminRoutes(router: Router): void {
     const result = await pool.query<ProductRow>(
       "SELECT * FROM products ORDER BY id ASC"
     );
-    return json(res, 200, result.rows.map(toPublicProduct));
+    return json(res, 200, await Promise.all(result.rows.map(toPublicProduct)));
   });
 
   // ── PATCH /api/admin/products/:id/stock ───────────────────────────────────
@@ -70,7 +168,7 @@ export function registerAdminRoutes(router: Router): void {
     );
 
     if (!result.rowCount) return json(res, 404, { error: "Product not found." });
-    return json(res, 200, toPublicProduct(result.rows[0]));
+    return json(res, 200, await toPublicProduct(result.rows[0]));
   });
 
   // ── PUT /api/admin/products/:id ───────────────────────────────────────────
@@ -130,7 +228,7 @@ export function registerAdminRoutes(router: Router): void {
     );
 
     if (!result.rowCount) return json(res, 404, { error: "Product not found." });
-    return json(res, 200, toPublicProduct(result.rows[0]));
+    return json(res, 200, await toPublicProduct(result.rows[0]));
   });
 
   // ── POST /api/admin/products ──────────────────────────────────────────────
@@ -167,7 +265,7 @@ export function registerAdminRoutes(router: Router): void {
         stock ?? 0,
       ]
     );
-    return json(res, 201, toPublicProduct(result.rows[0]));
+    return json(res, 201, await toPublicProduct(result.rows[0]));
   });
 
   // ── DELETE /api/admin/products/:id ────────────────────────────────────────
@@ -259,7 +357,7 @@ export function registerAdminRoutes(router: Router): void {
         );
       }
 
-      return json(res, 200, toPublicProduct(result.rows[0]));
+      return json(res, 200, await toPublicProduct(result.rows[0]));
     }
   );
 
@@ -321,7 +419,7 @@ export function registerAdminRoutes(router: Router): void {
         [url, productId]
       );
 
-      return json(res, 200, toPublicProduct(result.rows[0]));
+      return json(res, 200, await toPublicProduct(result.rows[0]));
     }
   );
 
@@ -370,7 +468,7 @@ export function registerAdminRoutes(router: Router): void {
         );
       }
 
-      return json(res, 200, toPublicProduct(result.rows[0]));
+      return json(res, 200, await toPublicProduct(result.rows[0]));
     }
   );
 
@@ -404,7 +502,7 @@ export function registerAdminRoutes(router: Router): void {
         );
       }
 
-      return json(res, 200, toPublicProduct(result.rows[0]));
+      return json(res, 200, await toPublicProduct(result.rows[0]));
     }
   );
 }

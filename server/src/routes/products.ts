@@ -2,10 +2,11 @@ import pool from "../db/pool";
 import { json } from "../router";
 import type { Router, Request, Response } from "../router";
 import type { ProductRow, ProductPublic } from "../types";
+import { createImageReadUrl } from "../storage";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function toPublicProduct(row: ProductRow): ProductPublic {
+async function toPublicProduct(row: ProductRow): Promise<ProductPublic> {
   return {
     id: row.id,
     name: row.name,
@@ -16,8 +17,8 @@ function toPublicProduct(row: ProductRow): ProductPublic {
     description: row.description,
     sizes: row.sizes,
     colors: row.colors,
-    img: row.img,
-    gallery: row.gallery,
+    img: await createImageReadUrl(row.img),
+    gallery: await Promise.all(row.gallery.map(createImageReadUrl)),
     category: row.category,
     stock: row.stock,
   };
@@ -55,7 +56,7 @@ export function registerProductRoutes(router: Router): void {
       values
     );
 
-    return json(res, 200, result.rows.map(toPublicProduct));
+    return json(res, 200, await Promise.all(result.rows.map(toPublicProduct)));
   });
 
   // ── GET /api/products/:id ─────────────────────────────────────────────────
@@ -70,7 +71,7 @@ export function registerProductRoutes(router: Router): void {
     const product = result.rows[0];
     if (!product) return json(res, 404, { error: "Product not found." });
 
-    return json(res, 200, toPublicProduct(product));
+    return json(res, 200, await toPublicProduct(product));
   });
 
   // ── GET /api/products/category/:category ──────────────────────────────────
@@ -89,6 +90,6 @@ export function registerProductRoutes(router: Router): void {
       `SELECT * FROM products WHERE category = $1 ORDER BY ${orderBy}`,
       [category]
     );
-    return json(res, 200, result.rows.map(toPublicProduct));
+    return json(res, 200, await Promise.all(result.rows.map(toPublicProduct)));
   });
 }

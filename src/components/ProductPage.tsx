@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { PRODUCTS } from "../data/products";
 import type { Product } from "../types";
@@ -60,6 +60,7 @@ export default function ProductPage() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
   const [addedFeedback, setAddedFeedback] = useState(false);
+  const thumbnailScroller = useRef<HTMLDivElement>(null);
 
   // Fetch the product from the API
   useEffect(() => {
@@ -96,7 +97,7 @@ export default function ProductPage() {
 
   // Similar items — same category, exclude current product, up to 3
   const similar = allProducts.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 3);
-  const galleryImgs = product.gallery.length > 0 ? product.gallery : [product.img];
+  const galleryImgs = [product.img, ...product.gallery].filter(Boolean);
 
   const wishlisted = isWishlisted(product.id);
 
@@ -151,10 +152,10 @@ export default function ProductPage() {
       {/* ── Main product layout ── */}
       <section className="flex flex-col md:flex-row gap-6 px-4 md:px-8 py-4 flex-1">
 
-        {/* Left — image gallery */}
+        {/* Left — main image with gallery carousel */}
         <div className="flex-1 flex flex-col gap-3">
           {/* Main image */}
-          <div className="w-full aspect-square md:aspect-auto md:h-[420px] rounded-2xl overflow-hidden bg-gray-100">
+          <div className="w-full aspect-square md:aspect-auto md:h-[420px] rounded-2xl overflow-hidden bg-gray-100 shadow-sm">
             {galleryImgs[activeImg] ? (
               <img
                 src={galleryImgs[activeImg]}
@@ -166,25 +167,45 @@ export default function ProductPage() {
             )}
           </div>
 
-          {/* Thumbnails */}
+          {/* Thumbnail carousel */}
           {galleryImgs.length > 1 && (
-            <div className="grid grid-cols-3 gap-3">
-              {galleryImgs.map((src, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveImg(i)}
-                  className={`aspect-square rounded-xl overflow-hidden border-2 transition-colors ${
-                    activeImg === i ? "border-green-500" : "border-transparent"
-                  }`}
-                  aria-label={`View image ${i + 1}`}
-                >
-                  {src ? (
-                    <img src={src} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <ImgPlaceholder />
-                  )}
-                </button>
-              ))}
+            <div className="relative flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => thumbnailScroller.current?.scrollBy({ left: -180, behavior: "smooth" })}
+                className="shrink-0 rounded-full border border-gray-200 bg-white p-2 text-gray-600 shadow-sm hover:border-green-500 hover:text-green-700"
+                aria-label="Scroll gallery left"
+              >
+                <span aria-hidden="true">←</span>
+              </button>
+              <div
+                ref={thumbnailScroller}
+                className="flex min-w-0 flex-1 gap-3 overflow-x-auto scroll-smooth py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                aria-label="Product image gallery"
+              >
+                {galleryImgs.map((src, i) => (
+                  <button
+                    key={`${src}-${i}`}
+                    type="button"
+                    onClick={() => setActiveImg(i)}
+                    className={`h-20 w-20 shrink-0 overflow-hidden rounded-xl border-2 transition-colors md:h-24 md:w-24 ${
+                      activeImg === i ? "border-green-500" : "border-transparent"
+                    }`}
+                    aria-label={`${i === 0 ? "View main image" : `View gallery image ${i}`} `}
+                    aria-current={activeImg === i ? "true" : undefined}
+                  >
+                    <img src={src} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => thumbnailScroller.current?.scrollBy({ left: 180, behavior: "smooth" })}
+                className="shrink-0 rounded-full border border-gray-200 bg-white p-2 text-gray-600 shadow-sm hover:border-green-500 hover:text-green-700"
+                aria-label="Scroll gallery right"
+              >
+                <span aria-hidden="true">→</span>
+              </button>
             </div>
           )}
         </div>
