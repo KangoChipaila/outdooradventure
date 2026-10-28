@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../utils/api";
 import { PRODUCTS } from "../data/products";
-import type { Product } from "../data/products";
+import type { Product } from "../types";
 
 function ImgPlaceholder() {
   return (

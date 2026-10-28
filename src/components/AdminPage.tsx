@@ -1,21 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { apiFetch } from "../utils/api";
+import { apiFetch, apiUrl } from "../utils/api";
 
-interface ProductRecord {
-  id?: number;
-  name: string;
-  brand: string;
-  price: number;
-  category: string;
-  stock: number;
-  description: string;
-  sizes: string[];
-  colors: string[];
-  img: string;
-  gallery: string[];
-}
+import type { Product } from "../types";
+
+type ProductRecord = Product & { stock: number };
 
 interface ProductFormState {
   name: string;
@@ -54,7 +44,7 @@ async function uploadProductImage(productId: number, file: File, kind: "main" | 
   const formData = new FormData();
   formData.append("image", file);
 
-  const response = await fetch(`http://localhost:4000/api/admin/products/${productId}/images/${kind}`, {
+  const response = await fetch(apiUrl(`/api/admin/products/${productId}/images/${kind}`), {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -62,7 +52,10 @@ async function uploadProductImage(productId: number, file: File, kind: "main" | 
     body: formData,
   });
 
-  const payload = (await response.json()) as { error?: string };
+  const contentType = response.headers.get("content-type") ?? "";
+  const payload = contentType.includes("application/json")
+    ? (await response.json()) as { error?: string }
+    : {};
   if (!response.ok) {
     throw new Error(payload.error ?? `Upload failed (${response.status})`);
   }

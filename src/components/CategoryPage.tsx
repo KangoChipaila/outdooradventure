@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PRODUCTS } from "../data/products";
-import type { Product } from "../data/products";
+import type { Product } from "../types";
 import { apiFetch } from "../utils/api";
 import { formatZMW } from "../utils/currency";
 import Footer from "./Footer";
@@ -148,8 +148,7 @@ export default function CategoryPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* ── Hero banner ── */}
-      <div className="bg-green-700 pt-[56px]">
-        <div className="max-w-5xl mx-auto px-4 py-12 text-white">
+      <div className="bg-green-700">        <div className="max-w-5xl mx-auto px-4 py-12 text-white">
           <p className="text-xs font-bold tracking-widest uppercase text-green-200 mb-1">
             Green Rock Outdoor Gear
           </p>

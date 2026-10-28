@@ -1,6 +1,10 @@
 // Base URL for the API server. Falls back to localhost in development.
 // In production, set VITE_API_URL in your .env file.
-export const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
+export const API_BASE = (import.meta.env.VITE_API_URL ?? "http://localhost:4000").replace(/\/$/, "");
+
+export function apiUrl(path: string): string {
+  return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+}
 
 // ── Typed fetch wrapper ───────────────────────────────────────────────────────
 
@@ -22,7 +26,7 @@ export async function apiFetch<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(apiUrl(path), {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,

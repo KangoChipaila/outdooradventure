@@ -1,17 +1,6 @@
-export interface Product {
-  id: number;
-  name: string;
-  brand: string;
-  price: number; // in ZMW
-  rating: number;
-  reviewCount: number;
-  description: string;
-  sizes: string[];
-  colors: string[];
-  img: string;
-  gallery: string[];
-  category: string;
-}
+import type { Product } from "../types";
+
+export type { Product } from "../types";
 
 export const PRODUCTS: Product[] = [
   {

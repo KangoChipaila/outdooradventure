@@ -3,7 +3,11 @@ import { json } from "../router";
 import type { Router, Request, Response } from "../router";
 import { requireAdmin } from "./auth";
 import { parseMultipart } from "../multipart";
-import { uploadImage, deleteImage, isAllowedImageType } from "../r2";
+import {
+  deleteImage,
+  isAllowedImageType,
+  uploadImage,
+} from "../storage";
 import type { ProductRow, ProductPublic, UpdateStockBody } from "../types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -199,7 +203,7 @@ export function registerAdminRoutes(router: Router): void {
   // ── POST /api/admin/products/:id/images/main ──────────────────────────────
   // Upload the primary image for a product.
   // Request: multipart/form-data with a single field named "image".
-  // On success, stores the R2 URL in products.img and returns the updated product.
+  // On success, stores the object-storage URL in products.img and returns the updated product.
   router.post(
     "/api/admin/products/:id/images/main",
     async (req: Request, res: Response) => {
@@ -234,7 +238,7 @@ export function registerAdminRoutes(router: Router): void {
         });
       }
 
-      // Upload new image to R2
+      // Upload new image to object storage
       const { url } = await uploadImage(
         file.data,
         file.mimeType,
@@ -248,10 +252,10 @@ export function registerAdminRoutes(router: Router): void {
         [url, productId]
       );
 
-      // Delete old R2 image after successful DB update (best-effort)
-      if (oldImgUrl && oldImgUrl.startsWith(process.env.R2_PUBLIC_URL ?? "__never__")) {
+      // Delete old image after successful DB update (best-effort)
+      if (oldImgUrl) {
         deleteImage(oldImgUrl).catch((err: unknown) =>
-          console.warn("[r2] Failed to delete old main image:", err)
+          console.warn("[storage] Failed to delete old main image:", err)
         );
       }
 
@@ -323,7 +327,7 @@ export function registerAdminRoutes(router: Router): void {
 
   // ── DELETE /api/admin/products/:id/images/gallery/:index ─────────────────
   // Remove a gallery image by its zero-based index.
-  // Deletes the file from R2 and removes the URL from the gallery array.
+  // Deletes the file from object storage and removes the URL from the gallery array.
   router.delete(
     "/api/admin/products/:id/images/gallery/:index",
     async (req: Request, res: Response) => {
@@ -359,10 +363,10 @@ export function registerAdminRoutes(router: Router): void {
         [galleryIndex + 1, productId] // convert 0-based JS index to 1-based Postgres
       );
 
-      // Delete from R2 (best-effort)
+      // Delete from object storage (best-effort)
       if (urlToDelete) {
         deleteImage(urlToDelete).catch((err: unknown) =>
-          console.warn("[r2] Failed to delete gallery image:", err)
+          console.warn("[storage] Failed to delete gallery image:", err)
         );
       }
 
@@ -371,7 +375,7 @@ export function registerAdminRoutes(router: Router): void {
   );
 
   // ── DELETE /api/admin/products/:id/images/main ────────────────────────────
-  // Remove the main image — clears products.img to "" and deletes from R2.
+  // Remove the main image — clears products.img to "" and deletes from object storage.
   router.delete(
     "/api/admin/products/:id/images/main",
     async (req: Request, res: Response) => {
@@ -396,7 +400,7 @@ export function registerAdminRoutes(router: Router): void {
 
       if (oldUrl) {
         deleteImage(oldUrl).catch((err: unknown) =>
-          console.warn("[r2] Failed to delete main image:", err)
+          console.warn("[storage] Failed to delete main image:", err)
         );
       }
 

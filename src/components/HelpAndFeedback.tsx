@@ -109,7 +109,7 @@ export default function HelpAndFeedback() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* ── Hero ── */}
-      <div className="bg-green-700 pt-[56px]">
+      <div className="bg-green-700">
         <div className="max-w-4xl mx-auto px-4 py-14 text-white">
           <p className="text-xs font-bold tracking-widest uppercase text-green-200 mb-2">
             Support

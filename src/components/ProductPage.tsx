@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { PRODUCTS } from "../data/products";
-import type { Product } from "../data/products";
+import type { Product } from "../types";
 import { formatZMW } from "../utils/currency";
 import { useCart } from "../stores/cartStore";
 import { useWishlist } from "../stores/wishlistStore";

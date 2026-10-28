@@ -64,7 +64,7 @@ export default function Checkout() {
   // ── Order confirmed state ──────────────────────────────────────────────────
   if (confirmedOrder) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50 pt-[56px]">
+      <div className="min-h-screen flex flex-col bg-gray-50">
         <main className="flex-1 flex flex-col items-center justify-center gap-6 px-4 py-16">
           <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8 text-green-600">
@@ -104,7 +104,7 @@ export default function Checkout() {
   // ── Empty cart ─────────────────────────────────────────────────────────────
   if (items.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50 pt-[56px]">
+      <div className="min-h-screen flex flex-col bg-gray-50">
         <main className="flex-1 flex flex-col items-center justify-center gap-4 text-gray-400">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.2} stroke="currentColor" className="w-16 h-16">
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
@@ -121,7 +121,7 @@ export default function Checkout() {
 
   // ── Main checkout ──────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 pt-[56px]">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-8 flex flex-col gap-6">
         <h1 className="text-xl font-bold text-gray-900">Checkout</h1>
 

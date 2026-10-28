@@ -20,11 +20,16 @@ import FAQs from "./components/FAQs";
 import HelpAndFeedback from "./components/HelpAndFeedback";
 import Checkout from "./components/Checkout";
 import AdminBootstrap from "./components/AdminBootstrap";
+import type { ReactNode } from "react";
+
+function PageWithNavbarOffset({ children }: { children: ReactNode }) {
+  return <div className="pt-[72px]">{children}</div>;
+}
 
 function HomePage() {
   return (
     <div className="min-h-screen flex flex-col">
-      <main className="flex-1 flex flex-col pt-[56px]">
+      <main className="flex-1 flex flex-col pt-[72px]">
         <Hero />
         <Deals />
         <CTA />
@@ -47,17 +52,17 @@ function App() {
 
           <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="/product/:id" element={<div className="pt-[56px]"><ProductPage /></div>} />
-            <Route path="/firsttimers" element={<FirstTimers />} />
+            <Route path="/product/:id" element={<PageWithNavbarOffset><ProductPage /></PageWithNavbarOffset>} />
+            <Route path="/firsttimers" element={<PageWithNavbarOffset><FirstTimers /></PageWithNavbarOffset>} />
             <Route path="/login" element={<LogIn />}/>
             <Route path="/signup" element={<SignUp />}/>
-            <Route path="/profile" element={<UserProfile />}/>
-            <Route path="/category/:slug" element={<CategoryPage />}/>
-            <Route path="/faqs" element={<FAQs />}/>
-            <Route path="/help" element={<HelpAndFeedback />}/>
-            <Route path="/checkout" element={<Checkout />}/>
-            <Route path="/admin/bootstrap" element={<div className="pt-[72px]"><AdminBootstrap /></div>} />
-            <Route path="/admin" element={<div className="pt-[72px]"><AdminPage /></div>} />
+            <Route path="/profile" element={<PageWithNavbarOffset><UserProfile /></PageWithNavbarOffset>} />
+            <Route path="/category/:slug" element={<PageWithNavbarOffset><CategoryPage /></PageWithNavbarOffset>} />
+            <Route path="/faqs" element={<PageWithNavbarOffset><FAQs /></PageWithNavbarOffset>} />
+            <Route path="/help" element={<PageWithNavbarOffset><HelpAndFeedback /></PageWithNavbarOffset>} />
+            <Route path="/checkout" element={<PageWithNavbarOffset><Checkout /></PageWithNavbarOffset>} />
+            <Route path="/admin/bootstrap" element={<PageWithNavbarOffset><AdminBootstrap /></PageWithNavbarOffset>} />
+            <Route path="/admin" element={<PageWithNavbarOffset><AdminPage /></PageWithNavbarOffset>} />
           </Routes>
 
           {/* Cart drawer — always mounted so it can open from any page */}

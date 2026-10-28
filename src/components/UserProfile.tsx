@@ -262,7 +262,7 @@ export default function UserProfile() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Hero banner */}
-      <div className="bg-green-700 pt-[56px]">
+      <div className="bg-green-700">
         <div className="max-w-4xl mx-auto px-4 py-10 flex items-center gap-6">
           <div className="w-20 h-20 rounded-full bg-green-900 flex items-center justify-center shrink-0 shadow-lg">
             <span className="text-white text-2xl font-bold tracking-widest">

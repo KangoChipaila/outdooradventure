@@ -120,8 +120,10 @@ export class Router {
       request.params = params;
       request.query = query;
 
-      // Parse body for mutating methods
-      if (["POST", "PUT", "PATCH"].includes(method)) {
+      // JSON routes use the shared parser. Multipart routes must keep the raw
+      // request stream available for their boundary-aware parser.
+      const contentType = req.headers["content-type"] ?? "";
+      if (["POST", "PUT", "PATCH"].includes(method) && !contentType.toLowerCase().startsWith("multipart/form-data")) {
         try {
           request.body = await readBody(req);
         } catch (err: unknown) {
